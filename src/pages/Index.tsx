@@ -1,12 +1,31 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import Header from "@/components/layout/Header";
+import Dashboard from "@/components/dashboard/Dashboard";
+import MenuManagement from "@/components/menu/MenuManagement";
+import BillingSystem from "@/components/billing/BillingSystem";
 
 const Index = () => {
+  const [currentView, setCurrentView] = useState('dashboard');
+
+  const renderCurrentView = () => {
+    switch (currentView) {
+      case 'dashboard':
+        return <Dashboard />;
+      case 'menu':
+        return <MenuManagement />;
+      case 'billing':
+        return <BillingSystem />;
+      default:
+        return <Dashboard />;
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen bg-background">
+      <Header currentView={currentView} onViewChange={setCurrentView} />
+      <main>
+        {renderCurrentView()}
+      </main>
     </div>
   );
 };
