@@ -4,8 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Minus, Plus, ShoppingCart, Receipt } from "lucide-react";
+import { Minus, Plus, ShoppingCart, Receipt, History, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import InvoiceModal from "./InvoiceModal";
+import { InvoiceData, printInvoice } from "@/utils/invoiceGenerator";
 
 interface MenuItem {
   id: string;
@@ -22,23 +24,15 @@ interface BillItem {
   total: number;
 }
 
-interface InvoiceData {
-  id: string;
-  date: string;
-  customerName: string;
-  items: BillItem[];
-  subtotal: number;
-  tax: number;
-  discount: number;
-  total: number;
-}
-
 const BillingSystem = () => {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [billItems, setBillItems] = useState<BillItem[]>([]);
   const [customerName, setCustomerName] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [discount, setDiscount] = useState(0);
+  const [invoiceHistory, setInvoiceHistory] = useState<InvoiceData[]>([]);
+  const [selectedInvoice, setSelectedInvoice] = useState<InvoiceData | null>(null);
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
   const { toast } = useToast();
 
   const taxRate = 0.18; // 18% GST
@@ -47,6 +41,11 @@ const BillingSystem = () => {
     const savedItems = localStorage.getItem('chingz_menu');
     if (savedItems) {
       setMenuItems(JSON.parse(savedItems));
+    }
+    
+    const savedOrders = localStorage.getItem('chingz_orders');
+    if (savedOrders) {
+      setInvoiceHistory(JSON.parse(savedOrders));
     }
   }, []);
 
@@ -120,92 +119,12 @@ const BillingSystem = () => {
 
     // Save to orders history
     const existingOrders = JSON.parse(localStorage.getItem('chingz_orders') || '[]');
-    localStorage.setItem('chingz_orders', JSON.stringify([...existingOrders, invoiceData]));
+    const updatedOrders = [...existingOrders, invoiceData];
+    localStorage.setItem('chingz_orders', JSON.stringify(updatedOrders));
+    setInvoiceHistory(updatedOrders);
 
-    // Generate PDF-like content (simplified for demo)
-    const invoiceWindow = window.open('', '_blank');
-    if (invoiceWindow) {
-      invoiceWindow.document.write(`
-        <html>
-          <head>
-            <title>Invoice - ${invoiceData.id}</title>
-            <style>
-              body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-              .header { text-align: center; border-bottom: 2px solid #e74c3c; padding-bottom: 20px; margin-bottom: 30px; }
-              .logo { width: 80px; height: 80px; margin: 0 auto 10px; }
-              .invoice-details { display: flex; justify-content: space-between; margin-bottom: 30px; }
-              .items-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-              .items-table th, .items-table td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-              .items-table th { background-color: #e74c3c; color: white; }
-              .totals { text-align: right; margin-top: 20px; }
-              .total-row { font-weight: bold; font-size: 18px; color: #e74c3c; }
-              @media print { body { margin: 0; } }
-            </style>
-          </head>
-          <body>
-            <div class="header">
-              <img src="/lovable-uploads/3419ee8e-6ea9-4f1e-b277-aec4b018b84c.png" alt="Chingz Chinese" class="logo" />
-              <h1>CHINGZ CHINESE</h1>
-              <p>Authentic Chinese Cuisine</p>
-              <p>Phone: +91 XXXXX-XXXXX | Email: info@chingzchinese.com</p>
-            </div>
-            
-            <div class="invoice-details">
-              <div>
-                <h3>Invoice #${invoiceData.id}</h3>
-                <p>Date: ${new Date(invoiceData.date).toLocaleDateString()}</p>
-                <p>Time: ${new Date(invoiceData.date).toLocaleTimeString()}</p>
-              </div>
-              <div>
-                <h3>Customer Details</h3>
-                <p>Name: ${invoiceData.customerName}</p>
-              </div>
-            </div>
-
-            <table class="items-table">
-              <thead>
-                <tr>
-                  <th>Item</th>
-                  <th>Quantity</th>
-                  <th>Price</th>
-                  <th>Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${invoiceData.items.map(item => `
-                  <tr>
-                    <td>${item.name}</td>
-                    <td>${item.quantity}</td>
-                    <td>₹${item.price.toFixed(2)}</td>
-                    <td>₹${item.total.toFixed(2)}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-
-            <div class="totals">
-              <p>Subtotal: ₹${invoiceData.subtotal.toFixed(2)}</p>
-              <p>GST (18%): ₹${invoiceData.tax.toFixed(2)}</p>
-              ${invoiceData.discount > 0 ? `<p>Discount: -₹${invoiceData.discount.toFixed(2)}</p>` : ''}
-              <p class="total-row">Total: ₹${invoiceData.total.toFixed(2)}</p>
-            </div>
-
-            <div style="text-center; margin-top: 40px; font-size: 14px; color: #666;">
-              <p>Thank you for dining with us!</p>
-              <p>Visit us again soon!</p>
-            </div>
-
-            <script>
-              window.onload = function() {
-                window.print();
-              }
-            </script>
-          </body>
-        </html>
-      `);
-      
-      invoiceWindow.document.close();
-    }
+    // Print invoice
+    printInvoice(invoiceData);
 
     // Clear current bill
     setBillItems([]);
@@ -216,6 +135,11 @@ const BillingSystem = () => {
       title: "Invoice Generated!",
       description: `Invoice ${invoiceData.id} has been generated and saved.`
     });
+  };
+
+  const handleInvoiceClick = (invoice: InvoiceData) => {
+    setSelectedInvoice(invoice);
+    setIsInvoiceModalOpen(true);
   };
 
   return (
@@ -383,6 +307,70 @@ const BillingSystem = () => {
           </Card>
         </div>
       </div>
+
+      {/* Invoice History */}
+      <div className="mt-8">
+        <Card className="shadow-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <History className="h-5 w-5" />
+              Previous Invoices
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {invoiceHistory.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="text-4xl mb-4">📄</div>
+                <p className="text-muted-foreground">No invoices generated yet</p>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {invoiceHistory
+                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                  .map((invoice) => (
+                  <div
+                    key={invoice.id}
+                    className="p-4 border rounded-lg bg-card hover:shadow-md transition-all cursor-pointer"
+                    onClick={() => handleInvoiceClick(invoice)}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h4 className="font-semibold text-foreground">{invoice.id}</h4>
+                          <Button size="sm" variant="outline" className="h-6 px-2">
+                            <Eye className="h-3 w-3 mr-1" />
+                            View
+                          </Button>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Customer: {invoice.customerName}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(invoice.date).toLocaleDateString()} • {new Date(invoice.date).toLocaleTimeString()}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Items: {invoice.items.reduce((sum, item) => sum + item.quantity, 0)}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-bold text-restaurant-gold">
+                          ₹{invoice.total.toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <InvoiceModal
+        isOpen={isInvoiceModalOpen}
+        onClose={() => setIsInvoiceModalOpen(false)}
+        invoiceData={selectedInvoice}
+      />
     </div>
   );
 };
