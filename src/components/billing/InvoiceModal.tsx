@@ -6,7 +6,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Download, Printer } from "lucide-react";
-import { InvoiceData, printInvoice, downloadInvoice } from "@/utils/invoiceGenerator";
+import { InvoiceData } from "@/types/billing";
+import { printInvoice, downloadInvoice } from "@/utils/invoiceGenerator";
 import { useToast } from "@/hooks/use-toast";
 
 interface InvoiceModalProps {

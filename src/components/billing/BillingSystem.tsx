@@ -7,22 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Minus, Plus, ShoppingCart, Receipt, History, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import InvoiceModal from "./InvoiceModal";
-import { InvoiceData, printInvoice } from "@/utils/invoiceGenerator";
-
-interface MenuItem {
-  id: string;
-  name: string;
-  price: number;
-  category: string;
-}
-
-interface BillItem {
-  id: string;
-  name: string;
-  price: number;
-  quantity: number;
-  total: number;
-}
+import { MenuItem, BillItem, InvoiceData } from "@/types/billing";
+import { printInvoice } from "@/utils/invoiceGenerator";
 
 const BillingSystem = () => {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
