@@ -1,4 +1,6 @@
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
+import { ChefHat, Home, Menu, Calculator, LogOut, User } from "lucide-react";
 
 interface HeaderProps {
   currentView: string;
@@ -6,6 +8,8 @@ interface HeaderProps {
 }
 
 const Header = ({ currentView, onViewChange }: HeaderProps) => {
+  const { user, signOut } = useAuth();
+  
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
     { id: 'menu', label: 'Menu Management', icon: '🍜' },
@@ -43,6 +47,25 @@ const Header = ({ currentView, onViewChange }: HeaderProps) => {
             </Button>
           ))}
         </nav>
+        
+        {/* User Info & Logout */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 text-white">
+            <User className="h-4 w-4" />
+            <span className="hidden sm:inline text-sm">
+              {user?.user_metadata?.display_name || user?.email}
+            </span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={signOut}
+            className="text-white hover:bg-white/10"
+          >
+            <LogOut className="h-4 w-4" />
+            <span className="hidden sm:inline ml-2">Sign Out</span>
+          </Button>
+        </div>
       </div>
     </header>
   );

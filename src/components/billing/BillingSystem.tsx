@@ -1,4 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useMenuItems } from "@/hooks/useMenuItems";
+import { useInvoices } from "@/hooks/useInvoices";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,29 +13,27 @@ import { MenuItem, BillItem, InvoiceData } from "@/types/billing";
 import { printInvoice } from "@/utils/invoiceGenerator";
 
 const BillingSystem = () => {
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const { menuItems, loading: menuLoading } = useMenuItems();
+  const { invoices, saveInvoice } = useInvoices();
   const [billItems, setBillItems] = useState<BillItem[]>([]);
   const [customerName, setCustomerName] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [discount, setDiscount] = useState(0);
-  const [invoiceHistory, setInvoiceHistory] = useState<InvoiceData[]>([]);
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceData | null>(null);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
   const { toast } = useToast();
 
   const taxRate = 0.18; // 18% GST
 
-  useEffect(() => {
-    const savedItems = localStorage.getItem('chingz_menu');
-    if (savedItems) {
-      setMenuItems(JSON.parse(savedItems));
-    }
-    
-    const savedOrders = localStorage.getItem('chingz_orders');
-    if (savedOrders) {
-      setInvoiceHistory(JSON.parse(savedOrders));
-    }
-  }, []);
+  if (menuLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <p>Loading menu items...</p>
+        </div>
+      </div>
+    );
+  }
 
   const categories = ["all", ...Array.from(new Set(menuItems.map(item => item.category)))];
 
@@ -78,49 +78,45 @@ const BillingSystem = () => {
     }
   };
 
-  const subtotal = billItems.reduce((sum, item) => sum + item.total, 0);
-  const taxAmount = subtotal * taxRate;
-  const finalTotal = subtotal + taxAmount - discount;
-
-  const generateInvoice = () => {
-    if (billItems.length === 0) {
+  const generateInvoice = async () => {
+    if (billItems.length === 0 || !customerName.trim()) {
       toast({
-        title: "Error",
-        description: "Please add items to the bill first",
-        variant: "destructive"
+        title: "Invalid Order",
+        description: "Please add items to the bill and enter customer name.",
+        variant: "destructive",
       });
       return;
     }
 
-    const invoiceData: InvoiceData = {
-      id: `INV-${Date.now()}`,
-      date: new Date().toISOString(),
-      customerName: customerName || "Walk-in Customer",
+    const invoiceNumber = `INV-${Date.now()}`;
+    const subtotal = billItems.reduce((sum, item) => sum + item.total, 0);
+    const discountAmount = (subtotal * discount) / 100;
+    const taxableAmount = subtotal - discountAmount;
+    const taxAmount = taxableAmount * taxRate;
+    const total = taxableAmount + taxAmount;
+
+    const invoiceData: Omit<InvoiceData, 'id' | 'date'> = {
+      invoiceNumber,
+      customerName: customerName.trim(),
       items: billItems,
       subtotal,
+      discount: discountAmount,
       tax: taxAmount,
-      discount,
-      total: finalTotal
+      total,
     };
 
-    // Save to orders history
-    const existingOrders = JSON.parse(localStorage.getItem('chingz_orders') || '[]');
-    const updatedOrders = [...existingOrders, invoiceData];
-    localStorage.setItem('chingz_orders', JSON.stringify(updatedOrders));
-    setInvoiceHistory(updatedOrders);
+    const savedInvoice = await saveInvoice(invoiceData);
+    if (savedInvoice) {
+      // Clear the current bill
+      setBillItems([]);
+      setCustomerName("");
+      setDiscount(0);
 
-    // Print invoice
-    printInvoice(invoiceData);
-
-    // Clear current bill
-    setBillItems([]);
-    setCustomerName("");
-    setDiscount(0);
-
-    toast({
-      title: "Invoice Generated!",
-      description: `Invoice ${invoiceData.id} has been generated and saved.`
-    });
+      toast({
+        title: "Invoice Generated",
+        description: `Invoice ${invoiceNumber} has been generated successfully.`,
+      });
+    }
   };
 
   const handleInvoiceClick = (invoice: InvoiceData) => {
@@ -128,8 +124,14 @@ const BillingSystem = () => {
     setIsInvoiceModalOpen(true);
   };
 
+  const subtotal = billItems.reduce((sum, item) => sum + item.total, 0);
+  const discountAmount = (subtotal * discount) / 100;
+  const taxableAmount = subtotal - discountAmount;
+  const taxAmount = taxableAmount * taxRate;
+  const finalTotal = taxableAmount + taxAmount;
+
   return (
-    <div className="p-6">
+    <div className="container mx-auto px-4 py-8">
       <div className="mb-6">
         <h2 className="text-3xl font-bold text-foreground mb-2">Billing System</h2>
         <p className="text-muted-foreground">Create orders and generate invoices.</p>
@@ -201,12 +203,13 @@ const BillingSystem = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="customer">Customer Name (Optional)</Label>
+                <Label htmlFor="customer">Customer Name</Label>
                 <Input
                   id="customer"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder="Walk-in Customer"
+                  placeholder="Enter customer name"
+                  required
                 />
               </div>
 
@@ -247,15 +250,16 @@ const BillingSystem = () => {
               {billItems.length > 0 && (
                 <>
                   <div>
-                    <Label htmlFor="discount">Discount (₹)</Label>
+                    <Label htmlFor="discount">Discount (%)</Label>
                     <Input
                       id="discount"
                       type="number"
                       step="0.01"
                       min="0"
+                      max="100"
                       value={discount}
                       onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
-                      placeholder="0.00"
+                      placeholder="0"
                     />
                   </div>
 
@@ -264,16 +268,16 @@ const BillingSystem = () => {
                       <span>Subtotal:</span>
                       <span>₹{subtotal.toFixed(2)}</span>
                     </div>
+                    {discount > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span>Discount ({discount}%):</span>
+                        <span>-₹{discountAmount.toFixed(2)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between text-sm">
                       <span>GST (18%):</span>
                       <span>₹{taxAmount.toFixed(2)}</span>
                     </div>
-                    {discount > 0 && (
-                      <div className="flex justify-between text-sm">
-                        <span>Discount:</span>
-                        <span>-₹{discount.toFixed(2)}</span>
-                      </div>
-                    )}
                     <div className="flex justify-between font-bold text-lg text-restaurant-red">
                       <span>Total:</span>
                       <span>₹{finalTotal.toFixed(2)}</span>
@@ -285,7 +289,7 @@ const BillingSystem = () => {
                     className="w-full bg-gradient-brand hover:opacity-90"
                     size="lg"
                   >
-                    Generate Invoice & Print
+                    Generate Invoice
                   </Button>
                 </>
               )}
@@ -296,67 +300,70 @@ const BillingSystem = () => {
 
       {/* Invoice History */}
       <div className="mt-8">
-        <Card className="shadow-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <History className="h-5 w-5" />
-              Previous Invoices
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {invoiceHistory.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="text-4xl mb-4">📄</div>
-                <p className="text-muted-foreground">No invoices generated yet</p>
-              </div>
-            ) : (
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {invoiceHistory
-                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                  .map((invoice) => (
-                  <div
-                    key={invoice.id}
-                    className="p-4 border rounded-lg bg-card hover:shadow-md transition-all cursor-pointer"
-                    onClick={() => handleInvoiceClick(invoice)}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h4 className="font-semibold text-foreground">{invoice.id}</h4>
-                          <Button size="sm" variant="outline" className="h-6 px-2">
-                            <Eye className="h-3 w-3 mr-1" />
-                            View
+        <div className="grid grid-cols-1 gap-6">
+          <div className="col-span-full">
+            <Card className="shadow-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <History className="h-5 w-5" />
+                  Previous Invoices
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-muted-foreground flex items-center gap-2">
+                    <History className="h-5 w-5" />
+                    Previous Invoices
+                  </h3>
+                  {invoices.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-8">No previous invoices found.</p>
+                  ) : (
+                    <div className="grid gap-2 max-h-60 overflow-y-auto">
+                      {invoices.map((invoice) => (
+                        <div
+                          key={invoice.id}
+                          className="flex items-center justify-between p-3 bg-card rounded-lg border hover:shadow-sm transition-shadow"
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium">{invoice.invoiceNumber}</span>
+                              <span className="text-sm text-muted-foreground">
+                                {new Date(invoice.date).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {invoice.customerName} • ₹{invoice.total.toFixed(2)}
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleInvoiceClick(invoice)}
+                            className="ml-2"
+                          >
+                            <Eye className="h-4 w-4" />
                           </Button>
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          Customer: {invoice.customerName}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {new Date(invoice.date).toLocaleDateString()} • {new Date(invoice.date).toLocaleTimeString()}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Items: {invoice.items.reduce((sum, item) => sum + item.quantity, 0)}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-lg font-bold text-restaurant-gold">
-                          ₹{invoice.total.toFixed(2)}
-                        </p>
-                      </div>
+                      ))}
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
 
-      <InvoiceModal
-        isOpen={isInvoiceModalOpen}
-        onClose={() => setIsInvoiceModalOpen(false)}
-        invoiceData={selectedInvoice}
-      />
+      {selectedInvoice && (
+        <InvoiceModal
+          invoice={selectedInvoice}
+          isOpen={isInvoiceModalOpen}
+          onClose={() => {
+            setIsInvoiceModalOpen(false);
+            setSelectedInvoice(null);
+          }}
+        />
+      )}
     </div>
   );
 };
