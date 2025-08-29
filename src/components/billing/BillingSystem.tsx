@@ -55,7 +55,7 @@ function buildWhatsAppMessage({ customerName, invoiceNumber, items, subtotal, di
     `--------------------------------`,
     `Subtotal: ₹${subtotal.toFixed(2)}`,
     ...(discountAmount > 0 ? [`Discount: -₹${discountAmount.toFixed(2)}`] : []),
-    `GST (18%): ₹${taxAmount.toFixed(2)}`,
+    // `GST (18%): ₹${taxAmount.toFixed(2)}`,
     `*Total: ₹${total.toFixed(2)}*`,
     ``,
     `Thank you! 🙏`,
@@ -511,10 +511,10 @@ export default function BillingSystem() {
                             <span>-₹{discountAmount.toFixed(2)}</span>
                           </div>
                         )}
-                        <div className="flex justify-between text-sm">
+                        {/* <div className="flex justify-between text-sm">
                           <span>GST (18%)</span>
                           <span>₹{taxAmount.toFixed(2)}</span>
-                        </div>
+                        </div> */}
                         <div className="flex justify-between font-bold">
                           <span>Total</span>
                           <span>₹{finalTotal.toFixed(2)}</span>

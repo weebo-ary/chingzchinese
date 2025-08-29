@@ -129,7 +129,7 @@ export function generateTokenInvoicePDF({
   // Totals
   ySim += lineH; // Subtotal
   if (discount > 0) ySim += lineH; // Discount row if present
-  ySim += lineH + 4; // GST
+  // ySim += lineH + 4; // GST
   // hr: 0
   ySim += lineH; // space aligned with code
 
@@ -272,7 +272,7 @@ export function generateTokenInvoicePDF({
     y += lineH;
   }
 
-  doc.text("GST (18%):", labelX, y);
+  // doc.text("GST (18%):", labelX, y);
   doc.text(money(tax), amtRight, y, { align: "right" });
   y += lineH + 4;
 
