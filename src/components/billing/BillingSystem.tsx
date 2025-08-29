@@ -52,7 +52,7 @@ function buildWhatsAppMessage({
 }: any) {
   const lines = [
     `Hi ${customerName || "Customer"},`,
-    `Your order from *CHINGZ CHINESE* is ready ✅`,
+    `Your order from *CHINGZ CHINESE* is preparing ✅`,
     ``,
     `*${invoiceNumber}*`,
     `--------------------------------`,
@@ -61,10 +61,8 @@ function buildWhatsAppMessage({
         `• ${i.name} x${i.quantity} — ₹${(i.price * i.quantity).toFixed(2)}`
     ),
     `--------------------------------`,
-    `Subtotal: ₹${subtotal.toFixed(2)}`,
+    `Total: ₹${subtotal.toFixed(2)}`,
     ...(discountAmount > 0 ? [`Discount: -₹${discountAmount.toFixed(2)}`] : []),
-    // `GST (18%): ₹${taxAmount.toFixed(2)}`,
-    `*Total: ₹${total.toFixed(2)}*`,
     ``,
     `Thank you! 🙏`,
   ];
@@ -360,7 +358,7 @@ export default function BillingSystem() {
   const discountAmount = (subtotal * discount) / 100;
   const taxableAmount = subtotal - discountAmount;
   const taxAmount = taxableAmount * TAX_RATE;
-  const finalTotal = taxableAmount + taxAmount;
+  const finalTotal = taxableAmount;
   const canGenerate = billItems.length > 0;
 
   const categories = [
@@ -519,19 +517,16 @@ export default function BillingSystem() {
                       </div>
                       <div className="border-t pt-2 space-y-1">
                         <div className="flex justify-between text-sm">
-                          <span>Subtotal</span>
+                          <span>Sub-Total</span>
                           <span>₹{subtotal.toFixed(2)}</span>
                         </div>
-                        {discount > 0 && (
-                          <div className="flex justify-between text-sm">
-                            <span>Discount</span>
-                            <span>-₹{discountAmount.toFixed(2)}</span>
-                          </div>
-                        )}
-                        {/* <div className="flex justify-between text-sm">
-                          <span>GST (18%)</span>
-                          <span>₹{taxAmount.toFixed(2)}</span>
-                        </div> */}
+                        {/* {discount > 0 && ( */}
+                        <div className="flex justify-between text-sm">
+                          <span>Discount</span>
+                          <span>-₹{discountAmount.toFixed(2)}</span>
+                        </div>
+                        {/* )} */}
+
                         <div className="flex justify-between font-bold">
                           <span>Total</span>
                           <span>₹{finalTotal.toFixed(2)}</span>
@@ -576,7 +571,10 @@ export default function BillingSystem() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => setSelectedInvoice(invoice)}
+                        onClick={() => {
+                          setSelectedInvoice(invoice);
+                          setIsInvoiceModalOpen(true); // 👈 open the modal
+                        }}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -590,7 +588,7 @@ export default function BillingSystem() {
           {selectedInvoice && (
             <InvoiceModal
               invoice={selectedInvoice}
-              isOpen={isInvoiceModalOpen}
+              isOpen={isInvoiceModalOpen} // 👈 will now be true on Eye click
               onClose={() => {
                 setIsInvoiceModalOpen(false);
                 setSelectedInvoice(null);
