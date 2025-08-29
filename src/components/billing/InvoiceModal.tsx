@@ -114,23 +114,23 @@ const InvoiceModal = ({ isOpen, onClose, invoiceData }: InvoiceModalProps) => {
           <div className="border-t pt-4">
             <div className="space-y-2 text-right max-w-sm ml-auto">
               <div className="flex justify-between">
-                <span>Subtotal:</span>
+                <span>Total:</span>
                 <span>₹{invoiceData.subtotal.toFixed(2)}</span>
               </div>
               {/* <div className="flex justify-between">
                 <span>GST (18%):</span>
                 <span>₹{invoiceData.tax.toFixed(2)}</span>
               </div> */}
-              {invoiceData.discount > 0 && (
+              {/* {invoiceData.discount > 0 && (
                 <div className="flex justify-between">
                   <span>Discount:</span>
                   <span>-₹{invoiceData.discount.toFixed(2)}</span>
                 </div>
-              )}
-              <div className="flex justify-between font-bold text-lg text-primary border-t pt-2">
+              )} */}
+              {/* <div className="flex justify-between font-bold text-lg text-primary border-t pt-2">
                 <span>Total:</span>
                 <span>₹{invoiceData.total.toFixed(2)}</span>
-              </div>
+              </div> */}
             </div>
           </div>
 

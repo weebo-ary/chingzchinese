@@ -41,7 +41,15 @@ function normalizeForWhatsApp(rawPhone: string, defaultCountryCode = "91") {
   return digits;
 }
 
-function buildWhatsAppMessage({ customerName, invoiceNumber, items, subtotal, discountAmount, taxAmount, total }: any) {
+function buildWhatsAppMessage({
+  customerName,
+  invoiceNumber,
+  items,
+  subtotal,
+  discountAmount,
+  taxAmount,
+  total,
+}: any) {
   const lines = [
     `Hi ${customerName || "Customer"},`,
     `Your order from *CHINGZ CHINESE* is ready ✅`,
@@ -227,7 +235,11 @@ export default function BillingSystem() {
       setBillItems((prev) =>
         prev.map((i) =>
           i.id === menuItem.id
-            ? { ...i, quantity: i.quantity + 1, total: (i.quantity + 1) * price }
+            ? {
+                ...i,
+                quantity: i.quantity + 1,
+                total: (i.quantity + 1) * price,
+              }
             : i
         )
       );
@@ -351,7 +363,12 @@ export default function BillingSystem() {
   const finalTotal = taxableAmount + taxAmount;
   const canGenerate = billItems.length > 0;
 
-  const categories = ["all", ...Array.from(new Set(visibleMenuItems.map((i) => i.category).filter(Boolean)))];
+  const categories = [
+    "all",
+    ...Array.from(
+      new Set(visibleMenuItems.map((i) => i.category).filter(Boolean))
+    ),
+  ];
   const filteredMenuItems =
     selectedCategory === "all"
       ? visibleMenuItems
