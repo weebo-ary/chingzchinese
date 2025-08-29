@@ -5,6 +5,7 @@ import Header from "@/components/layout/Header";
 import Dashboard from "@/components/dashboard/Dashboard";
 import MenuManagement from "@/components/menu/MenuManagement";
 import BillingSystem from "@/components/billing/BillingSystem";
+import Recipies from "@/components/recipies/page";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChefHat, LogIn } from "lucide-react";
@@ -64,6 +65,8 @@ const Index = () => {
         return <MenuManagement />;
       case 'billing':
         return <BillingSystem />;
+      case 'recipies':
+        return <Recipies />;
       default:
         return <Dashboard />;
     }
